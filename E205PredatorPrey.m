@@ -22,7 +22,7 @@ function varargout = E205PredatorPrey(varargin)
 
 % Edit the above text to modify the response to help E205PredatorPrey
 
-% Last Modified by GUIDE v2.5 03-Nov-2014 17:11:32
+% Last Modified by GUIDE v2.5 03-Nov-2014 17:28:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -146,12 +146,6 @@ set(handles.sigma_disp, 'String', sigma_str);
 handles = updatePhasePlot(handles);
 guidata(hObject, handles)
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 
 
 function mu_Callback(hObject, eventdata, handles)
@@ -273,6 +267,24 @@ function initCondEdit_Callback(hObject, eventdata, handles)
 % hObject    handle to initCondEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+prompt = {'Intial Prey Biomass','Initial Predator Biomass'};
+dlg_title = 'Initial Conditions';
+num_lines = 1;
+ic = handles.initialConditions;
+def = {num2str(ic(1)), num2str(ic(2))};
+answer = inputdlg(prompt,dlg_title,num_lines,def);
+assignin('base', 'answer', answer)
+if isempty(answer)
+    %do nothing
+else
+    % Update initial conditions
+    handles.initialConditions = [eval(answer{1}), eval(answer{2})];
+    ic = handles.initialConditions;
+    icstr = sprintf('Initial Conditions: [%g %g]', ic(1), ic(2));
+    set(handles.initCondDisp, 'String', icstr);
+end
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
 
 
 
@@ -303,3 +315,22 @@ function timeSpanButton_Callback(hObject, eventdata, handles)
 % hObject    handle to timeSpanButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+prompt = {'Time Span (s)'};
+dlg_title = 'Time Span';
+num_lines = 1;
+tspan = handles.timeSpan;
+def = {num2str(tspan)};
+answer = inputdlg(prompt,dlg_title,num_lines,def);
+assignin('base', 'answer', answer)
+if isempty(answer)
+    %do nothing
+else
+    % Update time span
+    handles.timeSpan = eval(answer{1});
+    tspan = handles.timeSpan;
+    tstr = sprintf('Time Span: %gs', tspan);
+    set(handles.timeSpanDisp, 'String', tstr);
+end
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
+
