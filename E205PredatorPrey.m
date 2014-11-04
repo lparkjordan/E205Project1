@@ -90,6 +90,7 @@ ylim([0 2]);
 title('Parameter Space')
 xlabel('mu (Prey overcrowding and disease factor)');
 ylabel('sigma (First order time delay for predator growth)');
+% legend('Stable','Oscillatory','Predator Threshold)');
 
 % Initialize Phase Portraits
 axes(handles.phase_plot_axes);
@@ -333,7 +334,9 @@ function mu_disp_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of mu_disp as text
 %        str2double(get(hObject,'String')) returns contents of mu_disp as a double
-
+handles.mu = str2double(get(hObject,'String'));
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
 
 % --- Executes during object creation, after setting all properties.
 function mu_disp_CreateFcn(hObject, eventdata, handles)
@@ -356,7 +359,9 @@ function sigma_disp_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of sigma_disp as text
 %        str2double(get(hObject,'String')) returns contents of sigma_disp as a double
-
+handles.sigma = str2double(get(hObject,'String'));
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
 
 
 % --- Executes during object creation, after setting all properties.
