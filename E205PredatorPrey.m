@@ -68,19 +68,22 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 
 % Plot stability boundary
-mu1 = linspace(0, 0.9, 1000);
-sigma1 = mu1./(1-mu1);
-% % handles.mu1 = mu1;
-% % handles.sigma1 = sigma1;
-% b1=(2^(1/2)*((1 - 8*a).^(1/2) - 2*a + 1).^(1/2))/2;
-% b2=(2^(1/2)*(1 - (1 - 8*a).^(1/2) - 2*a).^(1/2))/2;
-% a1 = a(b1 == real(b1));
-% b1 = b1(b1 == real(b1));
-% a2 = a(b2 == real(b2));
-% b2 = b2(b2 == real(b2));
 axes(handles.parameter_axes);
 hold all
-plot(mu1, sigma1);
+
+% Calculate and plot stable boundaries of system
+mu_stable_bound = linspace(0, 0.9, 1000);
+sigma_stable_bound = mu_stable_bound./(1-mu_stable_bound);
+plot(mu_stable_bound, sigma_stable_bound, 'red');
+
+% Calculate and plot Transition from Focus to Node Type
+mu_focus = linspace(0.8, 0.9, 100);
+sigma_focus = (mu_focus-sqrt(4.*(1-mu_focus)))./(1-mu_focus);
+plot(mu_focus, sigma_focus, 'green');
+
+% Plot Transcritical Bifurcation Point
+line([1 1],[0 2], 'Color', 'blue');
+
 xlim([0 2]);
 ylim([0 2]);
 title('Parameter Space')
@@ -131,12 +134,19 @@ set(handles.sigma_slider,'value', sigma);
 axes(handles.parameter_axes);
 cla(handles.parameter_axes);
 
-% Calculate stable boundaries of system
+% Calculate and plot stable boundaries of system
 mu_stable_bound = linspace(0, 0.9, 1000);
 sigma_stable_bound = mu_stable_bound./(1-mu_stable_bound);
+plot(mu_stable_bound, sigma_stable_bound, 'red');
 
-% Plot stable boundary and current value of mu and sigma
-plot(mu_stable_bound, sigma_stable_bound, 'blue');
+% Calculate and plot Transition from Focus to Node Type
+mu_focus = linspace(0.8, 0.9, 100);
+sigma_focus = (mu_focus-sqrt(4.*(1-mu_focus)))./(1-mu_focus);
+plot(mu_focus, sigma_focus, 'green');
+
+% Plot Transcritical Bifurcation Point
+line([1 1],[0 2], 'Color', 'blue');
+
 plot(mu,sigma,'ro')
 
 % % Replaced with more efficient algorithm for calculating fixed points
@@ -189,28 +199,31 @@ tic;
 % Plot result
 plot(x(:,1),x(:,2), 'blue')
 
-% % Update results table
-% % trace was found using jacobian at fixed point [b, b^2/(a+b^2)]
-% % det always > 0
-% trace = -1 - a - b^2 + 2*b^2/(a+b^2);
-% 
-% if trace > 0 % unstable, limit cycle predicted
-%     det = b^2 + a;
-%     Tcycle = 2 * pi / sqrt(det);
-%     str = sprintf('Limit Cycle with period %gs', Tcycle);
-%     handles.results = [{handles.a, handles.b, str}; handles.results];
-% else % stable, check whether eigenvalues are real or complex
+% Update results table
+% trace was found using jacobian at fixed point [b, b^2/(a+b^2)]
+% det always > 0
+trace = -mu + sigma*(1-mu);
+det = 1-mu;
+if det < 0
+    str = 'Unstable Saddle Node';
+    handles.results = [{handles.mu, handles.sigma, str}; handles.results];
+elseif trace > 0 % unstable, limit cycle predicted    
+    Tcycle = 2 * pi / sqrt(det);
+    str = sprintf('Limit Cycle with period %gs', Tcycle);
+    handles.results = [{handles.mu, handles.sigma, str}; handles.results];
+else % stable, check whether eigenvalues are real or complex
 %     jac = [ (2*b^3)/(b^2 + a) - 1,   b^2 + a; ...
 %            -(2*b^3)/(b^2 + a), - b^2 - a];
 %     eigen = eig(jac);
-%     if eigen == real(eigen)
-%         str = sprintf('Stable Node');
-%     else
-%         str = sprintf('Stable Focus');
-%     end
-%     handles.results = [{handles.a, handles.b, str}; handles.results];
-% end
-% set(handles.resultsTable,'Data',handles.results)
+    has_real_roots = trace^2 - 4*det;
+    if (has_real_roots > 0) %eigen == real(eigen)
+        str = sprintf('Stable Node');
+    else
+        str = sprintf('Stable Focus');
+    end
+    handles.results = [{handles.mu, handles.sigma, str}; handles.results];
+end
+set(handles.resultsTable,'Data',handles.results)
 
 
 % --- Executes on mouse press over axes background.
