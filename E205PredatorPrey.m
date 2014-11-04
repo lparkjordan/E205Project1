@@ -22,7 +22,7 @@ function varargout = E205PredatorPrey(varargin)
 
 % Edit the above text to modify the response to help E205PredatorPrey
 
-% Last Modified by GUIDE v2.5 03-Nov-2014 17:11:32
+% Last Modified by GUIDE v2.5 04-Nov-2014 02:16:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,8 +56,8 @@ function E205PredatorPrey_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Update handles structure
-handles.mu = 1;
-handles.sigma = 1;
+handles.mu = 0;
+handles.sigma = 0;
 handles.initialConditions = [0.5 0.5];
 handles.results = {};
 handles.timeSpan = 50;
@@ -84,17 +84,27 @@ plot(mu_focus, sigma_focus, 'green');
 % Plot Transcritical Bifurcation Point
 line([1 1],[0 2], 'Color', 'blue');
 
+%Initialize Parameter Axes
 xlim([0 2]);
 ylim([0 2]);
 title('Parameter Space')
 xlabel('mu');
 ylabel('sigma');
 
+% Initialize Phase Portraits
 axes(handles.phase_plot_axes);
 hold all
 title('Phase Portrait');
 xlabel ('x_1 (Prey)')
 ylabel ('x_2 (Predator)')
+axis auto
+
+% Initialize Time Plots
+axes(handles.time_plot);
+hold all
+title('Time Evolution');
+xlabel ('Time')
+ylabel ('Predator/Prey Biomass')
 
 % --- Outputs from this function are returned to the command line.
 function varargout = E205PredatorPrey_OutputFcn(hObject, eventdata, handles) 
@@ -173,11 +183,9 @@ plot(xstar,ystar,'ro')
 % If "Hold Axis Limits" is checked, reapply old axis limits
 if (get(handles.hold_axis_lims, 'Value')) 
     axis([old_xlims old_ylims])
+else
+    axis auto
 end
-
-
-
-
 
 % Solve with initial conditions
 tspan=[0 handles.timeSpan];
@@ -194,10 +202,18 @@ xoverFcn = @(T, Y) MyEventFunction(T, Y); % defined at bottom of code
 options = odeset('Events',xoverFcn); 
 % 3. start a stopwatch timer, if you already use one, define a new one: tic(ticID)
 tic;
-[~,x]=ode45(dx,tspan,x0,options);
+[t,x]=ode45(dx,tspan,x0,options);
 
-% Plot result
+% Plot phase results
 plot(x(:,1),x(:,2), 'blue')
+
+%Plot time domain results
+axes(handles.time_plot)
+cla(handles.time_plot);
+hold all
+plot(t,x(:,1), 'green');
+plot(t,x(:,2), 'red');
+legend('Prey','Predator');
 
 % Update results table
 % trace was found using jacobian at fixed point [b, b^2/(a+b^2)]
@@ -208,7 +224,9 @@ if det < 0
     str = 'Unstable Saddle Node';
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 elseif trace > 0 % unstable, limit cycle predicted    
-    Tcycle = 2 * pi / sqrt(det);
+%     Tcycle = 2 * pi / sqrt(det);
+    w = sqrt(det - (trace/2)^2); %Imaginary part of eigenvalues
+    Tcycle = 2*pi/w;
     str = sprintf('Limit Cycle with period %gs', Tcycle);
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 else % stable, check whether eigenvalues are real or complex
@@ -462,3 +480,39 @@ ISTERMINAL = 1;
 DIRECTION = 0;
 
 % what is funny, it works!! 
+
+
+% --- Executes on button press in IC_default.
+function IC_default_Callback(hObject, eventdata, handles)
+% hObject    handle to IC_default (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.initialConditions = [0.5 0.5];
+set(handles.initCondDisp, 'String', 'Initial Conditions: [0.5 0.5]');
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over IC_default.
+function IC_default_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to IC_default (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in timespan_default.
+function timespan_default_Callback(hObject, eventdata, handles)
+% hObject    handle to timespan_default (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.timeSpan = 50;
+set(handles.timeSpanDisp, 'String', 'Time Span: 50s');
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over timespan_default.
+function timespan_default_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to timespan_default (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
