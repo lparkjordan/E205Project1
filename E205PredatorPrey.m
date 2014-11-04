@@ -88,15 +88,15 @@ line([1 1],[0 2], 'Color', 'blue');
 xlim([0 2]);
 ylim([0 2]);
 title('Parameter Space')
-xlabel('mu');
-ylabel('sigma');
+xlabel('mu (First order time delay for predator growth)');
+ylabel('sigma (Prey overcrowding and disease factor)');
 
 % Initialize Phase Portraits
 axes(handles.phase_plot_axes);
 hold all
 title('Phase Portrait');
-xlabel ('x_1 (Prey)')
-ylabel ('x_2 (Predator)')
+xlabel ('x_1 (Prey Biomass)')
+ylabel ('x_2 (Predator Biomass)')
 axis auto
 
 % Initialize Time Plots
@@ -209,11 +209,23 @@ plot(x(:,1),x(:,2), 'blue')
 
 %Plot time domain results
 axes(handles.time_plot)
+
+% Store old x and y axis limits
+old_xlims = xlim;
+old_ylims = ylim;
+
 cla(handles.time_plot);
 hold all
 plot(t,x(:,1), 'green');
 plot(t,x(:,2), 'red');
 legend('Prey','Predator');
+
+% If "Hold Axis Limits" is checked, reapply old axis limits
+if (get(handles.hold_axis_lims, 'Value')) 
+    axis([old_xlims old_ylims])
+else
+    axis auto
+end
 
 % Update results table
 % trace was found using jacobian at fixed point [b, b^2/(a+b^2)]
