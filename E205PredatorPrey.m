@@ -22,7 +22,7 @@ function varargout = E205PredatorPrey(varargin)
 
 % Edit the above text to modify the response to help E205PredatorPrey
 
-% Last Modified by GUIDE v2.5 03-Nov-2014 17:11:32
+% Last Modified by GUIDE v2.5 03-Nov-2014 22:47:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,6 +67,31 @@ guidata(hObject, handles);
 % UIWAIT makes E205PredatorPrey wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
+% Plot stability boundary
+mu1 = linspace(0, 0.9, 1000);
+sigma1 = mu1./(1-mu1);
+% % handles.mu1 = mu1;
+% % handles.sigma1 = sigma1;
+% b1=(2^(1/2)*((1 - 8*a).^(1/2) - 2*a + 1).^(1/2))/2;
+% b2=(2^(1/2)*(1 - (1 - 8*a).^(1/2) - 2*a).^(1/2))/2;
+% a1 = a(b1 == real(b1));
+% b1 = b1(b1 == real(b1));
+% a2 = a(b2 == real(b2));
+% b2 = b2(b2 == real(b2));
+axes(handles.parameter_axes);
+hold all
+plot(mu1, sigma1);
+xlim([0 2]);
+ylim([0 2]);
+title('Parameter Space')
+xlabel('mu');
+ylabel('sigma');
+
+axes(handles.phase_plot_axes);
+hold all
+title('Phase Portrait');
+xlabel ('x_1 (Prey)')
+ylabel ('x_2 (Predator)')
 
 % --- Outputs from this function are returned to the command line.
 function varargout = E205PredatorPrey_OutputFcn(hObject, eventdata, handles) 
@@ -80,31 +105,89 @@ varargout{1} = handles.output;
 
 % Updates phase plot when anything changes
 function handles = updatePhasePlot(handles)
-syms x1 x2;
+
+% Correct clicking off the screen
+if (handles.mu < 0)
+    handles.mu = 0;
+elseif (handles.mu > 2)
+    handles.mu = 2;
+end
+
+if (handles.sigma < 0)
+    handles.sigma = 0;
+elseif (handles.sigma > 2)
+    handles.sigma = 2;
+end
+
+% Store current values of mu and sigma into variables
 mu = handles.mu;
 sigma = handles.sigma;
-x1dot = x1 - x1 * x2 - mu * x1^2;
-x2dot = x1 * x2 - x2 - sigma * x2 * x1dot;
-[xstar,ystar]=solve(x1dot,x2dot);
+
+% Readjust sliders to reflect latest values of mu and sigma
+set(handles.mu_slider,'value', mu);
+set(handles.sigma_slider,'value', sigma);
+
+% Define and clear axes
+axes(handles.parameter_axes);
+cla(handles.parameter_axes);
+
+% Calculate stable boundaries of system
+mu_stable_bound = linspace(0, 0.9, 1000);
+sigma_stable_bound = mu_stable_bound./(1-mu_stable_bound);
+
+% Plot stable boundary and current value of mu and sigma
+plot(mu_stable_bound, sigma_stable_bound, 'blue');
+plot(mu,sigma,'ro')
+
+% % Replaced with more efficient algorithm for calculating fixed points
+% syms x1 x2;
+% x1dot = x1 - x1 * x2 - mu * x1^2;
+% x2dot = x1 * x2 - x2 - sigma * x2 * x1dot;
+% [xstar,ystar]=solve(x1dot,x2dot);
+xstar = [0, 1/mu, 1];
+ystar = [0, 0, 1-mu];
 
 % Define axes
 axes(handles.phase_plot_axes)
 
+% Store old x and y axis limits
+old_xlims = xlim;
+old_ylims = ylim;
+
+% Clear axes
+cla(handles.phase_plot_axes);
+
 % Plot fixed points
 plot(xstar,ystar,'ro')
-hold on
-title('Phase Portrait');
-xlabel ('x_1 (Prey)')
-ylabel ('x_2 (Predator)')
+
+% If "Hold Axis Limits" is checked, reapply old axis limits
+if (get(handles.hold_axis_lims, 'Value')) 
+    axis([old_xlims old_ylims])
+end
+
+
+
+
 
 % Solve with initial conditions
-tspan=handles.timeSpan;
+tspan=[0 handles.timeSpan];
 x0=handles.initialConditions';
-fun = sprintf('[x(1) - x(1)*x(2) -  %g*x(1)^2; x(1)*x(2) - x(2) - %g*x(2) * (x(1) - x(1)*x(2) -  %g*x(1)^2) ]', mu, sigma, mu);
-dx=inline(fun,'t','x');
-[~,x]=ode45(dx,tspan,x0);
-plot(x(:,1),x(:,2))
-hold off
+% % Deprecated code. Replaced with @ functions
+% fun = sprintf('[x(1) - x(1)*x(2) -  %g*x(1)^2; x(1)*x(2) - x(2) - %g*x(2) * (x(1) - x(1)*x(2) -  %g*x(1)^2) ]', mu, sigma, mu);
+% dx=inline(fun,'t','x');
+dx = @(t,x) [x(1) - x(1)*x(2) -  mu*x(1)^2; x(1)*x(2) - x(2) - sigma*x(2) * (x(1) - x(1)*x(2) -  mu*x(1)^2) ];
+
+% Solve Timeout problem: http://www.mathworks.com/matlabcentral/newsreader/view_thread/119565
+% 1. define a link to an an event function which will stop calculation
+xoverFcn = @(T, Y) MyEventFunction(T, Y); % defined at bottom of code
+% 2. register this function as an event function
+options = odeset('Events',xoverFcn); 
+% 3. start a stopwatch timer, if you already use one, define a new one: tic(ticID)
+tic;
+[~,x]=ode45(dx,tspan,x0,options);
+
+% Plot result
+plot(x(:,1),x(:,2), 'blue')
 
 % % Update results table
 % % trace was found using jacobian at fixed point [b, b^2/(a+b^2)]
@@ -139,32 +222,28 @@ function parameter_axes_ButtonDownFcn(hObject, eventdata, handles)
 coords = get(hObject, 'CurrentPoint');
 handles.mu = coords(1,1);
 handles.sigma = coords(1,2);
-mu_str = sprintf('Current Value of mu: %g', handles.mu);
-sigma_str = sprintf('Current Value of sigma: %g', handles.sigma);
+mu_str = sprintf('%g', handles.mu);
+sigma_str = sprintf('%g', handles.sigma);
 set(handles.mu_disp, 'String', mu_str);
 set(handles.sigma_disp, 'String', sigma_str);
 handles = updatePhasePlot(handles);
 guidata(hObject, handles)
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-
-function mu_Callback(hObject, eventdata, handles)
+function mu_slider_Callback(hObject, eventdata, handles)
 % hObject    handle to mu_disp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of mu_disp as text
 %        str2double(get(hObject,'String')) returns contents of mu_disp as a double
-
+handles.mu = get(hObject,'value');
+mu_str = sprintf('%g', handles.mu);
+set(handles.mu_disp, 'String', mu_str);
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
 
 % --- Executes during object creation, after setting all properties.
-function mu_CreateFcn(hObject, eventdata, handles)
+function mu_slider_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to mu_disp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -177,17 +256,21 @@ end
 
 
 
-function sigma_Callback(hObject, eventdata, handles)
+function sigma_slider_Callback(hObject, eventdata, handles)
 % hObject    handle to sigma_disp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of sigma_disp as text
 %        str2double(get(hObject,'String')) returns contents of sigma_disp as a double
-
+handles.sigma = get(hObject,'value');
+sigma_str = sprintf('%g', handles.sigma);
+set(handles.sigma_disp, 'String', sigma_str);
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
 
 % --- Executes during object creation, after setting all properties.
-function sigma_CreateFcn(hObject, eventdata, handles)
+function sigma_slider_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to sigma_disp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -232,6 +315,7 @@ function sigma_disp_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of sigma_disp as a double
 
 
+
 % --- Executes during object creation, after setting all properties.
 function sigma_disp_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to sigma_disp (see GCBO)
@@ -254,7 +338,6 @@ function initCondDisp_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of initCondDisp as text
 %        str2double(get(hObject,'String')) returns contents of initCondDisp as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function initCondDisp_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to initCondDisp (see GCBO)
@@ -273,7 +356,24 @@ function initCondEdit_Callback(hObject, eventdata, handles)
 % hObject    handle to initCondEdit (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+prompt = {'Intial Prey Biomass','Initial Predator Biomass'};
+dlg_title = 'Initial Conditions';
+num_lines = 1;
+ic = handles.initialConditions;
+def = {num2str(ic(1)), num2str(ic(2))};
+answer = inputdlg(prompt,dlg_title,num_lines,def);
+assignin('base', 'answer', answer)
+if isempty(answer)
+    %do nothing
+else
+    % Update initial conditions
+    handles.initialConditions = [eval(answer{1}), eval(answer{2})];
+    ic = handles.initialConditions;
+    icstr = sprintf('Initial Conditions: [%g %g]', ic(1), ic(2));
+    set(handles.initCondDisp, 'String', icstr);
+end
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
 
 
 function timeSpanDisp_Callback(hObject, eventdata, handles)
@@ -303,3 +403,49 @@ function timeSpanButton_Callback(hObject, eventdata, handles)
 % hObject    handle to timeSpanButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+prompt = {'Time Span (s)'};
+dlg_title = 'Time Span';
+num_lines = 1;
+tspan = handles.timeSpan;
+def = {num2str(tspan)};
+answer = inputdlg(prompt,dlg_title,num_lines,def);
+assignin('base', 'answer', answer)
+if isempty(answer)
+    %do nothing
+else
+    % Update time span
+    handles.timeSpan = eval(answer{1});
+    tspan = handles.timeSpan;
+    tstr = sprintf('Time Span: %gs', tspan);
+    set(handles.timeSpanDisp, 'String', tstr);
+end
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
+
+% --- Executes on button press in hold_axis_lims.
+function hold_axis_lims_Callback(hObject, eventdata, handles)
+% hObject    handle to hold_axis_lims (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of hold_axis_lims
+
+% Define the event function
+function [VALUE, ISTERMINAL, DIRECTION] = MyEventFunction(T, Y)
+%The event function stops the intergration is VALUE == 0 and 
+%ISTERMINAL==1
+
+%a. Define the timeout in seconds
+TimeOut = 0.5;
+%
+%b. The solver runs until this VALUE is negative (does not change the sign)
+    VALUE = toc-TimeOut;
+
+
+%c. The function should terminate the execution, so
+ISTERMINAL = 1;
+
+%d. The direction does not matter
+DIRECTION = 0;
+
+% what is funny, it works!! 
