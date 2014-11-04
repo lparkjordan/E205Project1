@@ -88,8 +88,8 @@ line([1 1],[0 2], 'Color', 'blue');
 xlim([0 2]);
 ylim([0 2]);
 title('Parameter Space')
-xlabel('mu (First order time delay for predator growth)');
-ylabel('sigma (Prey overcrowding and disease factor)');
+xlabel('mu (Prey overcrowding and disease factor)');
+ylabel('sigma (First order time delay for predator growth)');
 
 % Initialize Phase Portraits
 axes(handles.phase_plot_axes);
