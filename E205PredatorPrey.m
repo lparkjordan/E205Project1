@@ -90,6 +90,12 @@ ylim([0 2]);
 title('Parameter Space')
 xlabel('mu (Prey overcrowding and disease factor)');
 ylabel('sigma (First order time delay for predator growth)');
+
+% Add Region Labels
+text(0.3,1.95,'1') 
+text(0.74,1.95,'2')
+text(0.92,1.95,'3')
+text(1.4,1.95,'4') 
 % legend('Stable','Oscillatory','Predator Threshold)');
 
 % Initialize Phase Portraits
@@ -132,6 +138,12 @@ set(handles.sigma_slider,'value', sigma);
 % Define and clear axes
 axes(handles.parameter_axes);
 cla(handles.parameter_axes);
+
+% Add Region Labels
+text(0.3,1.95,'1') 
+text(0.74,1.95,'2')
+text(0.92,1.95,'3')
+text(1.4,1.95,'4') 
 
 % Calculate and plot stable boundaries of system
 mu_stable_bound = linspace(0, 0.9, 1000);
