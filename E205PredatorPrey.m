@@ -235,13 +235,13 @@ det = 1-mu;
 if det < 0 % [1, 1-mu] node is not the stable one, the [1/mu, 0] one is.
     nodeLoc = [1/handles.mu, 0];
     str = sprintf('Stable Node at [%.3g, %.3g]', nodeLoc);
-    handles.results = [{handles.mu, handles.sigma, str}; handles.results];
+    handles.results = [{handles.mu, handles.sigma, str, 'N/A', 'N/A'}; handles.results];
 elseif trace > 0 % unstable, limit cycle predicted    
     w = sqrt(det - (trace/2)^2); %Imaginary part of eigenvalues
-    Tcycle = 2*pi/w;
-    str = sprintf('Limit Cycle around [%.3g, %.3g] with period %.3gs', nodeLoc, Tcycle);
-    measureLimitCycle(t,x(:,1));
-    handles.results = [{handles.mu, handles.sigma, str}; handles.results];
+    Tpredicted = 2*pi/w;
+    Tmeasured = measureLimitCycle(t,x(:,1));
+    str = sprintf('Limit Cycle around [%.3g, %.3g]', nodeLoc);
+    handles.results = [{handles.mu, handles.sigma, str, Tpredicted, Tmeasured}; handles.results];
 else % stable, check whether eigenvalues are real or complex
     has_real_roots = trace^2 - 4*det;
     if (has_real_roots > 0)
@@ -249,7 +249,7 @@ else % stable, check whether eigenvalues are real or complex
     else
         str = sprintf('Stable Focus at [%.3g, %.3g]', nodeLoc);
     end
-    handles.results = [{handles.mu, handles.sigma, str}; handles.results];
+    handles.results = [{handles.mu, handles.sigma, str, 'N/A', 'N/A'}; handles.results];
 end
 set(handles.resultsTable,'Data',handles.results)
 
@@ -575,7 +575,6 @@ guidata(hObject, handles)
 
 % Attempts to measure the period of a limit cycle
 function period = measureLimitCycle(time, biomass)
-minprom = max(biomass)/10;
 peakLocs = peakfinder(biomass);
 peakTimes = time(peakLocs);
 period = mean(diff(peakTimes));
