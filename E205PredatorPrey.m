@@ -235,13 +235,13 @@ det = 1-mu;
 if det < 0 % [1, 1-mu] node is not the stable one, the [1/mu, 0] one is.
     nodeLoc = [1/handles.mu, 0];
     str = sprintf('Stable Node at [%.3g, %.3g]', nodeLoc);
-    handles.results = [{handles.mu, handles.sigma, str, 'N/A', 'N/A'}; handles.results];
+    newResult = {handles.mu, handles.sigma, str, 'N/A', 'N/A'};
 elseif trace > 0 % unstable, limit cycle predicted    
     w = sqrt(det - (trace/2)^2); %Imaginary part of eigenvalues
     Tpredicted = 2*pi/w;
     Tmeasured = measureLimitCycle(t,x(:,1));
     str = sprintf('Limit Cycle around [%.3g, %.3g]', nodeLoc);
-    handles.results = [{handles.mu, handles.sigma, str, Tpredicted, Tmeasured}; handles.results];
+    newResult = {handles.mu, handles.sigma, str, Tpredicted, Tmeasured};
 else % stable, check whether eigenvalues are real or complex
     has_real_roots = trace^2 - 4*det;
     if (has_real_roots > 0)
@@ -249,7 +249,11 @@ else % stable, check whether eigenvalues are real or complex
     else
         str = sprintf('Stable Focus at [%.3g, %.3g]', nodeLoc);
     end
-    handles.results = [{handles.mu, handles.sigma, str, 'N/A', 'N/A'}; handles.results];
+    newResult = {handles.mu, handles.sigma, str, 'N/A', 'N/A'};
+end
+
+if isempty(handles.results) || ~isequal(handles.results(1,:), newResult)
+    handles.results = [newResult; handles.results];
 end
 set(handles.resultsTable,'Data',handles.results)
 
