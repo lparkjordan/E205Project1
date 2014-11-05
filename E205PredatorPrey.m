@@ -160,11 +160,7 @@ line([1 1],[0 2], 'Color', 'blue');
 
 plot(mu,sigma,'ro')
 
-% % Replaced with more efficient algorithm for calculating fixed points
-% syms x1 x2;
-% x1dot = x1 - x1 * x2 - mu * x1^2;
-% x2dot = x1 * x2 - x2 - sigma * x2 * x1dot;
-% [xstar,ystar]=solve(x1dot,x2dot);
+% Use presolved fixed point locations
 xstar = [0, 1/mu, 1];
 ystar = [0, 0, 1-mu];
 
@@ -191,9 +187,8 @@ end
 % Solve with initial conditions
 tspan=[0 handles.timeSpan];
 x0=handles.initialConditions';
-% % Deprecated code. Replaced with @ functions
-% fun = sprintf('[x(1) - x(1)*x(2) -  %g*x(1)^2; x(1)*x(2) - x(2) - %g*x(2) * (x(1) - x(1)*x(2) -  %g*x(1)^2) ]', mu, sigma, mu);
-% dx=inline(fun,'t','x');
+
+% Define the system
 dx = @(t,x) [x(1) - x(1)*x(2) -  mu*x(1)^2; x(1)*x(2) - x(2) - sigma*x(2) * (x(1) - x(1)*x(2) -  mu*x(1)^2) ];
 
 % Solve Timeout problem: http://www.mathworks.com/matlabcentral/newsreader/view_thread/119565
@@ -229,25 +224,20 @@ else
 end
 
 % Update results table
-% trace was found using jacobian at fixed point [b, b^2/(a+b^2)]
-% det always > 0
+% trace was found using jacobian at fixed point [1, 1-mu]
 trace = -mu + sigma*(1-mu);
 det = 1-mu;
 if det < 0
     str = 'Unstable Saddle Node';
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 elseif trace > 0 % unstable, limit cycle predicted    
-%     Tcycle = 2 * pi / sqrt(det);
     w = sqrt(det - (trace/2)^2); %Imaginary part of eigenvalues
     Tcycle = 2*pi/w;
     str = sprintf('Limit Cycle with period %gs', Tcycle);
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 else % stable, check whether eigenvalues are real or complex
-%     jac = [ (2*b^3)/(b^2 + a) - 1,   b^2 + a; ...
-%            -(2*b^3)/(b^2 + a), - b^2 - a];
-%     eigen = eig(jac);
     has_real_roots = trace^2 - 4*det;
-    if (has_real_roots > 0) %eigen == real(eigen)
+    if (has_real_roots > 0)
         str = sprintf('Stable Node');
     else
         str = sprintf('Stable Focus');
@@ -334,7 +324,15 @@ function mu_disp_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of mu_disp as text
 %        str2double(get(hObject,'String')) returns contents of mu_disp as a double
-handles.mu = str2double(get(hObject,'String'));
+newMu = str2double(get(hObject,'String'));
+if newMu > 2
+    set(hObject, 'String', '2')
+    newMu = 2;
+elseif newMu < 0
+    set(hObject, 'String', '0')
+    newMu = 0;
+end
+handles.mu = newMu;
 handles = updatePhasePlot(handles);
 guidata(hObject, handles)
 
@@ -359,7 +357,15 @@ function sigma_disp_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of sigma_disp as text
 %        str2double(get(hObject,'String')) returns contents of sigma_disp as a double
-handles.sigma = str2double(get(hObject,'String'));
+newSigma = str2double(get(hObject,'String'));
+if newSigma > 2
+    set(hObject, 'String', '2')
+    newSigma = 2;
+elseif newSigma < 0
+    set(hObject, 'String', '0')
+    newSigma = 0;
+end
+handles.sigma = newSigma;
 handles = updatePhasePlot(handles);
 guidata(hObject, handles)
 
