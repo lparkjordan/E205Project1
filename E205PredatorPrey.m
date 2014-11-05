@@ -22,7 +22,7 @@ function varargout = E205PredatorPrey(varargin)
 
 % Edit the above text to modify the response to help E205PredatorPrey
 
-% Last Modified by GUIDE v2.5 04-Nov-2014 02:16:01
+% Last Modified by GUIDE v2.5 04-Nov-2014 22:04:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -120,18 +120,6 @@ varargout{1} = handles.output;
 % Updates phase plot when anything changes
 function handles = updatePhasePlot(handles)
 
-% Correct clicking off the screen
-if (handles.mu < 0)
-    handles.mu = 0;
-elseif (handles.mu > 2)
-    handles.mu = 2;
-end
-
-if (handles.sigma < 0)
-    handles.sigma = 0;
-elseif (handles.sigma > 2)
-    handles.sigma = 2;
-end
 
 % Store current values of mu and sigma into variables
 mu = handles.mu;
@@ -177,12 +165,7 @@ cla(handles.phase_plot_axes);
 % Plot fixed points
 plot(xstar,ystar,'ro')
 
-% If "Hold Axis Limits" is checked, reapply old axis limits
-if (get(handles.hold_axis_lims, 'Value')) 
-    axis([old_xlims old_ylims])
-else
-    axis auto
-end
+
 
 % Solve with initial conditions
 tspan=[0 handles.timeSpan];
@@ -202,6 +185,15 @@ tic;
 
 % Plot phase results
 plot(x(:,1),x(:,2), 'blue')
+
+% If "Hold Axis Limits" is checked, reapply old axis limits
+if (get(handles.hold_axis_lims, 'Value')) 
+    axis([old_xlims old_ylims])
+else
+    axis auto
+    axLims = axis;
+    axis(max(0,axLims))
+end
 
 %Plot time domain results
 axes(handles.time_plot)
@@ -225,22 +217,24 @@ end
 
 % Update results table
 % trace was found using jacobian at fixed point [1, 1-mu]
+nodeLoc = [1, 1-handles.mu];
 trace = -mu + sigma*(1-mu);
 det = 1-mu;
-if det < 0
-    str = 'Unstable Saddle Node';
+if det < 0 % [1, 1-mu] node is not the stable one, the [1/mu, 0] one is.
+    nodeLoc = [1/handles.mu, 0];
+    str = sprintf('Stable Node at [%.3g, %.3g]', nodeLoc);
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 elseif trace > 0 % unstable, limit cycle predicted    
     w = sqrt(det - (trace/2)^2); %Imaginary part of eigenvalues
     Tcycle = 2*pi/w;
-    str = sprintf('Limit Cycle with period %gs', Tcycle);
+    str = sprintf('Limit Cycle around [%.3g, %.3g] with period %.3gs', nodeLoc, Tcycle);
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 else % stable, check whether eigenvalues are real or complex
     has_real_roots = trace^2 - 4*det;
     if (has_real_roots > 0)
-        str = sprintf('Stable Node');
+        str = sprintf('Stable Node at [%.3g, %.3g]', nodeLoc);
     else
-        str = sprintf('Stable Focus');
+        str = sprintf('Stable Focus at [%.3g, %.3g]', nodeLoc);
     end
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 end
@@ -254,8 +248,18 @@ function parameter_axes_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Updates values of a and b (reaction constants)
 coords = get(hObject, 'CurrentPoint');
-handles.mu = coords(1,1);
-handles.sigma = coords(1,2);
+newMu = coords(1,1);
+newSigma = coords(1,2);
+
+% Correct clicking off the screen
+newMu = max(newMu,0);
+newMu = min(newMu,2);
+
+newSigma = max(newSigma,0);
+newSigma = min(newSigma,2);
+
+handles.mu = newMu;
+handles.sigma = newSigma;
 mu_str = sprintf('%g', handles.mu);
 sigma_str = sprintf('%g', handles.sigma);
 set(handles.mu_disp, 'String', mu_str);
@@ -539,3 +543,28 @@ function timespan_default_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to timespan_default (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on mouse press over axes background.
+function phase_plot_axes_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to phase_plot_axes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+coords = get(hObject, 'CurrentPoint');
+coords = max(coords,0);
+handles.initialConditions = [coords(1,1), coords(1,2)];
+ic = handles.initialConditions;
+icstr = sprintf('Initial Conditions: [%.3g %.3g]', ic(1), ic(2));
+set(handles.initCondDisp, 'String', icstr);
+handles = updatePhasePlot(handles);
+guidata(hObject, handles)
+
+
+% Attempts to measure the period of a limit cycle
+function measureLimitCycle(biomass)
+
+
+
+
+
+
