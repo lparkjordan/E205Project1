@@ -228,6 +228,7 @@ elseif trace > 0 % unstable, limit cycle predicted
     w = sqrt(det - (trace/2)^2); %Imaginary part of eigenvalues
     Tcycle = 2*pi/w;
     str = sprintf('Limit Cycle around [%.3g, %.3g] with period %.3gs', nodeLoc, Tcycle);
+    measureLimitCycle(t,x(:,1));
     handles.results = [{handles.mu, handles.sigma, str}; handles.results];
 else % stable, check whether eigenvalues are real or complex
     has_real_roots = trace^2 - 4*det;
@@ -561,9 +562,11 @@ guidata(hObject, handles)
 
 
 % Attempts to measure the period of a limit cycle
-function measureLimitCycle(biomass)
-
-
+function period = measureLimitCycle(time, biomass)
+minprom = max(biomass)/10;
+peakLocs = peakfinder(biomass);
+peakTimes = time(peakLocs);
+period = mean(diff(peakTimes));
 
 
 
