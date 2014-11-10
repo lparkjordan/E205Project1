@@ -491,7 +491,7 @@ else
     % Update time span
     handles.timeSpan = min(max(eval(answer{1}),1),300);
     tspan = handles.timeSpan;
-    tstr = sprintf('Time Span: %gs', tspan);
+    tstr = sprintf('Time Span: %g', tspan);
     set(handles.timeSpanDisp, 'String', tstr);
 end
 handles = updatePhasePlot(handles);
