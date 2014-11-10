@@ -442,7 +442,7 @@ if isempty(answer)
     %do nothing
 else
     % Update initial conditions
-    handles.initialConditions = min(max([eval(answer{1}), eval(answer{2})],0),10);
+    handles.initialConditions = min(max([eval(answer{1}), eval(answer{2})],0),1);
     ic = handles.initialConditions;
     icstr = sprintf('Initial Conditions: [%g %g]', ic(1), ic(2));
     set(handles.initCondDisp, 'String', icstr);
@@ -568,7 +568,7 @@ function phase_plot_axes_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 coords = get(hObject, 'CurrentPoint');
-coords = min(max(coords,0),10);
+coords = min(max(coords,0),1);
 handles.initialConditions = [coords(1,1), coords(1,2)];
 ic = handles.initialConditions;
 icstr = sprintf('Initial Conditions: [%.3g %.3g]', ic(1), ic(2));
